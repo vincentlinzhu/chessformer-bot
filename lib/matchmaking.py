@@ -8,9 +8,10 @@ from lib.timer import Timer, seconds, minutes, days, years
 from collections import defaultdict
 from collections.abc import Sequence
 from lib import lichess
-from lib.config import Configuration
-from typing import Optional, Union
-from lib.types import UserProfileType, PerfType, EventType, FilterType
+from lib.config import Configuration, FilterType
+from typing import Any, Optional, Union
+USER_PROFILE_TYPE = dict[str, Any]
+EVENT_TYPE = dict[str, Any]
 MULTIPROCESSING_LIST_TYPE = Sequence[model.Challenge]
 DAILY_TIMERS_TYPE = list[Timer]
 LICHESS_TYPE = Union[lichess.Lichess, test_bot.lichess.Lichess]
@@ -44,16 +45,17 @@ def write_daily_challenges(daily_challenges: DAILY_TIMERS_TYPE) -> None:
 class Matchmaking:
     """Challenge other bots."""
 
-    def __init__(self, li: LICHESS_TYPE, config: Configuration, user_profile: UserProfileType) -> None:
+    def __init__(self, li: LICHESS_TYPE, config: Configuration, user_profile: USER_PROFILE_TYPE) -> None:
         """Initialize values needed for matchmaking."""
         self.li = li
         self.variants = list(filter(lambda variant: variant != "fromPosition", config.challenge.variants))
         self.matchmaking_cfg = config.matchmaking
         self.user_profile = user_profile
         self.last_challenge_created_delay = Timer(seconds(25))  # Challenges expire after 20 seconds.
-        self.last_game_ended_delay = Timer(minutes(self.matchmaking_cfg.challenge_timeout))
+        # self.last_game_ended_delay = Timer(minutes(self.matchmaking_cfg.challenge_timeout))
+        self.last_game_ended_delay = Timer(seconds(1)) # to speed up matchmaking
         self.last_user_profile_update_time = Timer(minutes(5))
-        self.min_wait_time = seconds(60)  # Wait before new challenge to avoid api rate limits.
+        self.min_wait_time = seconds(1)  # Wait before new challenge to avoid api rate limits.
 
         # Maximum time between challenges, even if there are active games
         self.max_wait_time = minutes(10) if self.matchmaking_cfg.allow_during_games else years(10)
@@ -72,7 +74,7 @@ class Matchmaking:
         for name in self.matchmaking_cfg.block_list:
             self.add_to_block_list(name)
 
-    def should_create_challenge(self) -> bool:
+    def should_create_challenge(self) -> bool: #!!!
         """Whether we should create a challenge."""
         matchmaking_enabled = self.matchmaking_cfg.allow_matchmaking
         time_has_passed = self.last_game_ended_delay.is_expired()
@@ -88,7 +90,9 @@ class Matchmaking:
     def create_challenge(self, username: str, base_time: int, increment: int, days: int, variant: str,
                          mode: str) -> str:
         """Create a challenge."""
-        params: dict[str, Union[str, int, bool]] = {"rated": mode == "rated", "variant": variant}
+        # params = {"rated": mode == "rated", "variant": variant, "color": 'white' } # If you only want to test when the bot plays white
+        # params = {"rated": mode == "rated", "variant": variant, "color": 'black' } # If you only want to test when the bot plays black
+        params = {"rated": mode == "rated", "variant": variant}
 
         if days:
             params["days"] = days
@@ -131,9 +135,9 @@ class Matchmaking:
         self.min_wait_time = seconds(60) * ((len(self.daily_challenges) // 50) + 1)
         write_daily_challenges(self.daily_challenges)
 
-    def perf(self) -> dict[str, PerfType]:
+    def perf(self) -> dict[str, dict[str, Any]]:
         """Get the bot's rating in every variant. Bullet, blitz, rapid etc. are considered different variants."""
-        user_perf: dict[str, PerfType] = self.user_profile["perfs"]
+        user_perf: dict[str, dict[str, Any]] = self.user_profile["perfs"]
         return user_perf
 
     def username(self) -> str:
@@ -150,13 +154,11 @@ class Matchmaking:
             except Exception:
                 pass
 
-    def get_weights(self, online_bots: list[UserProfileType], rating_preference: str, min_rating: int, max_rating: int,
+    def get_weights(self, online_bots: list[USER_PROFILE_TYPE], rating_preference: str, min_rating: int, max_rating: int,
                     game_type: str) -> list[int]:
         """Get the weight for each bot. A higher weights means the bot is more likely to get challenged."""
-        def rating(bot: UserProfileType) -> int:
-            perfs: dict[str, PerfType] = bot.get("perfs", {})
-            perf: PerfType = perfs.get(game_type, {})
-            return perf.get("rating", 0)
+        def rating(bot: USER_PROFILE_TYPE) -> int:
+            return int(bot.get("perfs", {}).get(game_type, {}).get("rating", 0))
 
         if rating_preference == "high":
             # A bot with max_rating rating will be twice as likely to get picked than a bot with min_rating rating.
@@ -169,17 +171,6 @@ class Matchmaking:
         else:
             weights = [1] * len(online_bots)
         return weights
-    
-    def choose_maia_opponent(self) -> tuple[Optional[str], int, int, int, str, str]:
-        """Choose only maia opponent."""
-        variant = 'standard'
-        mode = 'rated'
-        base_time = 180
-        increment = 1
-        days = 0
-        bot_username = ["maia1", "maia5", "maia9"][-1] # add humaia?
-        # bot_username = random.choice(["maia1", "maia5", "maia9", "Humaia", "Humaia-Strong", "MaiaMystery", "maia9_30n", "maia9_10n"])
-        return bot_username, base_time, increment, days, variant, mode
 
     def choose_opponent(self) -> tuple[Optional[str], int, int, int, str, str]:
         """Choose an opponent."""
@@ -215,7 +206,7 @@ class Matchmaking:
         logger.info(f"Seeking {game_type} game with opponent rating in [{min_rating}, {max_rating}] ...")
         allow_tos_violation = match_config.opponent_allow_tos_violation
 
-        def is_suitable_opponent(bot: UserProfileType) -> bool:
+        def is_suitable_opponent(bot: USER_PROFILE_TYPE) -> bool:
             perf = bot.get("perfs", {}).get(game_type, {})
             return (bot["username"] != self.username()
                     and not self.in_block_list(bot["username"])
@@ -224,10 +215,10 @@ class Matchmaking:
                     and perf.get("games", 0) > 0
                     and min_rating <= perf.get("rating", 0) <= max_rating)
 
-        online_bots = self.li.get_online_bots()
+        online_bots = self.li.get_online_bots() #!!!
         online_bots = list(filter(is_suitable_opponent, online_bots))
 
-        def ready_for_challenge(bot: UserProfileType) -> bool:
+        def ready_for_challenge(bot: USER_PROFILE_TYPE) -> bool:
             aspects = [variant, game_type, mode] if self.challenge_filter == FilterType.FINE else []
             return all(self.should_accept_challenge(bot["username"], aspect) for aspect in aspects)
 
@@ -251,6 +242,22 @@ class Matchmaking:
 
         return bot_username, base_time, increment, days, variant, mode
 
+
+    def choose_maia_opponent(self) -> tuple[Optional[str], int, int, int, str, str]:
+        """Choose only maia opponent."""
+        variant = 'standard'
+        mode = 'rated'
+        base_time = 180
+        increment = 1
+        days = 0
+        bot_username = "maia1" # add humaia?
+        print("Choose_maia_opponent: ", bot_username)
+        # bot_username = ["maia1", "maia5", "maia9"] # add humaia?
+        # bot_username = random.choice(["maia1", "maia5", "maia9"])
+        # bot_username = random.choice(["maia1", "maia5", "maia9", "Humaia", "Humaia-Strong", "MaiaMystery", "maia9_30n", "maia9_10n"])
+        return bot_username, base_time, increment, days, variant, mode
+
+
     def get_random_config_value(self, config: Configuration, parameter: str, choices: list[str]) -> str:
         """Choose a random value from `choices` if the parameter value in the config is `random`."""
         value: str = config.lookup(parameter)
@@ -269,6 +276,8 @@ class Matchmaking:
         if (game_count >= max_games_for_matchmaking
                 or (game_count > 0 and self.last_challenge_created_delay.time_since_reset() < self.max_wait_time)
                 or not self.should_create_challenge()):
+            return
+        if (game_count >= max_games_for_matchmaking):
             return
 
         logger.info("Challenging a random bot")
@@ -334,7 +343,7 @@ class Matchmaking:
         """
         return self.challenge_type_acceptable[(username, game_aspect)]
 
-    def accepted_challenge(self, event: EventType) -> None:
+    def accepted_challenge(self, event: EVENT_TYPE) -> None:
         """
         Set the challenge id to an empty string, if the challenge was accepted.
 
@@ -342,7 +351,7 @@ class Matchmaking:
         """
         self.discard_challenge(event["game"]["id"])
 
-    def declined_challenge(self, event: EventType) -> None:
+    def declined_challenge(self, event: EVENT_TYPE) -> None:
         """
         Handle a challenge that was declined by the opponent.
 

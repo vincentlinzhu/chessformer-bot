@@ -22,7 +22,16 @@ Supports:
 3. [Upgrade to a BOT account](https://github.com/lichess-bot-devs/lichess-bot/wiki/Upgrade-to-a-BOT-account)
 4. [Setup the engine](https://github.com/lichess-bot-devs/lichess-bot/wiki/Setup-the-engine)
 5. [Configure lichess-bot](https://github.com/lichess-bot-devs/lichess-bot/wiki/Configure-lichess-bot)
-6. [Run lichess-bot](https://github.com/lichess-bot-devs/lichess-bot/wiki/How-to-Run-lichess%E2%80%90bot)
+7. [Run lichess-bot](https://github.com/lichess-bot-devs/lichess-bot/wiki/How-to-Run-lichess%E2%80%90bot)
+
+# Notes for developers
+To run the NanoGPT Engine Bot:
+- Set up a Lichess bot account and get the API token (refer to the steps above)
+Run the following commands in order:
+1. pip install -r requirements.txt
+2. pip install chess torch
+3. cp config.yml.default
+4. python lichess-bot.py --weight_file ckpt_100000.pt --config_token <YOUR LICHESS API TOKEN>
 
 ## Advanced options
 - [Create a homemade engine](https://github.com/lichess-bot-devs/lichess-bot/wiki/Create-a-homemade-engine)

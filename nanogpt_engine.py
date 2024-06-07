@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Some example classes for people who want to create a homemade bot.
 

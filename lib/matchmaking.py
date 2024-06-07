@@ -169,6 +169,17 @@ class Matchmaking:
         else:
             weights = [1] * len(online_bots)
         return weights
+    
+    def choose_maia_opponent(self) -> tuple[Optional[str], int, int, int, str, str]:
+        """Choose only maia opponent."""
+        variant = 'standard'
+        mode = 'rated'
+        base_time = 180
+        increment = 1
+        days = 0
+        bot_username = ["maia1", "maia5", "maia9"][-1] # add humaia?
+        # bot_username = random.choice(["maia1", "maia5", "maia9", "Humaia", "Humaia-Strong", "MaiaMystery", "maia9_30n", "maia9_10n"])
+        return bot_username, base_time, increment, days, variant, mode
 
     def choose_opponent(self) -> tuple[Optional[str], int, int, int, str, str]:
         """Choose an opponent."""
@@ -262,7 +273,8 @@ class Matchmaking:
 
         logger.info("Challenging a random bot")
         self.update_user_profile()
-        bot_username, base_time, increment, days, variant, mode = self.choose_opponent()
+        # bot_username, base_time, increment, days, variant, mode = self.choose_opponent()
+        bot_username, base_time, increment, days, variant, mode = self.choose_maia_opponent()
         logger.info(f"Will challenge {bot_username} for a {variant} game.")
         challenge_id = self.create_challenge(bot_username, base_time, increment, days, variant, mode) if bot_username else ""
         logger.info(f"Challenge id is {challenge_id if challenge_id else 'None'}.")

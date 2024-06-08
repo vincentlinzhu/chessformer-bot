@@ -83,19 +83,27 @@ def get_legal_move(
                 return resginationMove #!
 
         try:
+            # move_san = 'e2e8' # Force an illegal move
             move_uci = board.parse_san(move_san)
             return PlayResult(move_uci, None)            
             
         except Exception as e:
-            print(f"Error parsing move {move_san}: {e}")
-            continue
+            if attempt < max_attempts - 1:
+                print(f"Error parsing move {move_san}: {e}")
+                continue
+            else:
+                move_uci = random.choice(list(board.legal_moves))
+                print("RANDOM MOVE UCI:", move_uci)
+                print("RANDOM MOVE SAN:", board.san(move_uci))
+                return PlayResult(move_uci, None)
 
     if move_uci is None:
+        print("THIS IS BAD!!!!!!!!!")
+        breakpoint()
         move_uci = random.choice(list(board.legal_moves))
-        move_san = board.san(random.choice(list(board.legal_moves)))
-        return LegalMoveResponse(
-            move_san=" " + move_san, move_uci=move_uci, attempts=max_attempts
-        )
+        print("RANDOM MOVE UCI:", move_uci)
+        print("RANDOM MOVE SAN:", board.san(move_uci))
+        return PlayResult(move_uci, None)
         # raise chess.engine.EngineError('Failed to find legal move')
 
 
@@ -127,7 +135,7 @@ class NanoGPTEngine(ExampleEngine):
 
         # 1. Nc3 e5 2. e4 Nf6 *
         
-        game_state = re.sub(r'\. |\s+', lambda m: '.' if m.group(0) == '. ' else ' ', raw_pgn.split('\n\n')[1]) # this will remove spaces after game number
+        game_state = re.sub(r'\. |\s+', lambda m: '.' if m.group(0) == '. ' else ' ', raw_pgn.split('\n\n')[1]) # this will remove spaces after move number
         # > print(game_state)
         # 1.Nc3 e5 2.e4 Nf6 *
         

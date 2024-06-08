@@ -1,6 +1,7 @@
 """
 Sample from a trained model
 """
+import re
 from pathlib import Path
 from contextlib import nullcontext
 import torch
@@ -85,6 +86,15 @@ class NanoGptPlayer:
         top_k = 200  # retain only the top_k most likely tokens, clamp others to have 0 probability
         max_new_tokens = 10
 
+        # Remove ["stockfish elo xxx"]\n["stockfish elo xxx"]\n\n from game_state
+        # nanogpt was trained only on pgn transcripts
+        # game_state = game_state.split("\n\n")[1].strip()
+
+        # Nanogpt was trained on pgn transcripts of this format: 1.e4 e5 2.Nf3 (not 1. e4 e5 2. Nf3)
+        # I did this to save on tokens
+        # We remove the space after the move number to match the training data
+        # game_state = re.sub(r"(\d+\.) ", r"\1", game_state)
+
         game_state = ";" + game_state
         
         # print('MODEL_INPUT:', game_state)
@@ -104,11 +114,17 @@ class NanoGptPlayer:
         model_response = model_response[len(game_state) :]
         if ";" in model_response:
             model_response = model_response.split(";")[0]
+
+        if "+" in model_response:  # UNTESTED
+            model_response = model_response.split("+")[0]
+
         return model_response
 
     def get_move_from_response(self, response: str) -> str:
         # Parse the response to get only the first move
         moves = response.split()
+        if not moves:
+            return ""
         first_move = moves[0]
 
         return first_move

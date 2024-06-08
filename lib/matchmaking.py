@@ -1,5 +1,6 @@
 """Challenge other bots."""
 import random
+import os
 import logging
 import datetime
 import test_bot.lichess
@@ -252,6 +253,7 @@ class Matchmaking:
         days = 0
         # bot_username = "maia1" # add humaia?
         bot_username = random.choice(["maia1", "maia5", "maia9"])
+        print("Temperature: ", os.environ["TEMPERATURE"])
         # bot_username = random.choice(["maia1", "maia5", "maia9", "Humaia", "Humaia-Strong", "MaiaMystery", "maia9_30n", "maia9_10n"])
         return bot_username, base_time, increment, days, variant, mode
 

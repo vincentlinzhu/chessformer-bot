@@ -29,7 +29,7 @@ To run the NanoGPT Engine Bot:
 - Set up a Lichess bot account and get the API token (refer to the steps above)
 Run the following commands in order:
 1. pip install -r requirements.txt
-2. pip install chess torch
+2. pip install chess torch python-dotenv loguru
 3. cp config.yml.default
 4. python lichess-bot.py --weight_file ckpt_100000.pt --config_token <YOUR LICHESS API TOKEN>
 

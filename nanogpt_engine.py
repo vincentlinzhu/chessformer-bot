@@ -9,6 +9,7 @@ With these classes, bot makers will not have to implement the UCI or XBoard inte
 from __future__ import annotations
 import os
 import re
+import random
 import chess
 from chess.engine import PlayResult
 import logging
@@ -90,7 +91,12 @@ def get_legal_move(
             continue
 
     if move_uci is None:
-        raise chess.engine.EngineError('Failed to find legal move')
+        move_uci = random.choice(list(board.legal_moves))
+        move_san = board.san(random.choice(list(board.legal_moves)))
+        return LegalMoveResponse(
+            move_san=" " + move_san, move_uci=move_uci, attempts=max_attempts
+        )
+        # raise chess.engine.EngineError('Failed to find legal move')
 
 
 

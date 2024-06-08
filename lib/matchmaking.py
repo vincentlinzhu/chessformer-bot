@@ -250,10 +250,8 @@ class Matchmaking:
         base_time = 180
         increment = 1
         days = 0
-        bot_username = "maia1" # add humaia?
-        print("Choose_maia_opponent: ", bot_username)
-        # bot_username = ["maia1", "maia5", "maia9"] # add humaia?
-        # bot_username = random.choice(["maia1", "maia5", "maia9"])
+        # bot_username = "maia1" # add humaia?
+        bot_username = random.choice(["maia1", "maia5", "maia9"])
         # bot_username = random.choice(["maia1", "maia5", "maia9", "Humaia", "Humaia-Strong", "MaiaMystery", "maia9_30n", "maia9_10n"])
         return bot_username, base_time, increment, days, variant, mode
 
